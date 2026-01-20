@@ -50,7 +50,7 @@ class _RegisterTechnicianScreenState extends State<RegisterTechnicianScreen> {
     final user = UserModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       email: _emailController.text.trim(),
-      name: _nameController.text.trim(),
+      fullName: _nameController.text.trim(),
       role: UserRole.technician,
       phone: _phoneController.text.trim(),
       specialty: _selectedSpecialty,
@@ -96,7 +96,7 @@ class _RegisterTechnicianScreenState extends State<RegisterTechnicianScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
+                const Icon(
                   Icons.build,
                   size: 60,
                   color: Colors.orange,

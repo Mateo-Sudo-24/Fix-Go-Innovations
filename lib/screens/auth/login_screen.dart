@@ -47,16 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // Navegar según el rol
       Widget homeScreen;
-      switch (user.role) {
-        case UserRole.client:
-          homeScreen = ClientHomeScreen(user: user);
-          break;
-        case UserRole.technician:
-          homeScreen = TechnicianHomeScreen(user: user);
-          break;
-        case UserRole.admin:
-          homeScreen = AdminHomeScreen(user: user);
-          break;
+      
+      if (user.role == UserRole.client) {
+        homeScreen = ClientHomeScreen(user: user);
+      } else if (user.role == UserRole.technician) {
+        homeScreen = TechnicianHomeScreen(user: user);
+      } else {
+        homeScreen = AdminHomeScreen(user: user);
       }
 
       Navigator.pushReplacement(

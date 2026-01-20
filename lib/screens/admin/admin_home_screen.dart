@@ -45,7 +45,7 @@ class AdminHomeScreen extends StatelessWidget {
                       radius: 30,
                       backgroundColor: Colors.purple,
                       child: Text(
-                        user.name[0].toUpperCase(),
+                        user.fullName[0].toUpperCase(),
                         style: const TextStyle(fontSize: 24, color: Colors.white),
                       ),
                     ),
@@ -55,7 +55,7 @@ class AdminHomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.name,
+                            user.fullName,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -87,7 +87,7 @@ class AdminHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
@@ -97,7 +97,7 @@ class AdminHomeScreen extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.engineering,
@@ -109,7 +109,7 @@ class AdminHomeScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
@@ -119,7 +119,7 @@ class AdminHomeScreen extends StatelessWidget {
                     color: Colors.green,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.attach_money,
@@ -145,7 +145,7 @@ class AdminHomeScreen extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.5,
-              children: [
+              children: const [
                 _ActionCard(
                   icon: Icons.person_add,
                   title: 'Verificar Técnicos',

@@ -44,7 +44,7 @@ class ClientHomeScreen extends StatelessWidget {
                       radius: 30,
                       backgroundColor: Colors.blue,
                       child: Text(
-                        user.name[0].toUpperCase(),
+                        user.fullName[0].toUpperCase(),
                         style: const TextStyle(fontSize: 24, color: Colors.white),
                       ),
                     ),
@@ -54,7 +54,7 @@ class ClientHomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '¡Hola, ${user.name}!',
+                            '¡Hola, ${user.fullName}!',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -91,7 +91,7 @@ class ClientHomeScreen extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              children: [
+              children: const [
                 _ServiceCard(
                   icon: Icons.plumbing,
                   title: 'Plomería',

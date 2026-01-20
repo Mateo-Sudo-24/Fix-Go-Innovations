@@ -3,7 +3,7 @@ enum UserRole { client, technician, admin }
 class UserModel {
   final String id;
   final String email;
-  final String name;
+  final String fullName;  // Cambiado de 'name' a 'fullName'
   final UserRole role;
   final String? phone;
   final String? address;
@@ -13,7 +13,7 @@ class UserModel {
   UserModel({
     required this.id,
     required this.email,
-    required this.name,
+    required this.fullName,  // Cambiado aquí también
     required this.role,
     this.phone,
     this.address,
@@ -25,7 +25,7 @@ class UserModel {
     return UserModel(
       id: json['id'],
       email: json['email'],
-      name: json['name'],
+      fullName: json['full_name'],  // Mapea desde la BD
       role: UserRole.values.firstWhere((e) => e.name == json['role']),
       phone: json['phone'],
       address: json['address'],
@@ -38,7 +38,7 @@ class UserModel {
     return {
       'id': id,
       'email': email,
-      'name': name,
+      'full_name': fullName,  // Guarda en la BD como 'full_name'
       'role': role.name,
       'phone': phone,
       'address': address,

@@ -38,7 +38,7 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
     final user = UserModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       email: _emailController.text.trim(),
-      name: _nameController.text.trim(),
+      fullName: _nameController.text.trim(),
       role: UserRole.client,
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
@@ -83,7 +83,7 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
+                const Icon(
                   Icons.person,
                   size: 60,
                   color: Colors.blue,

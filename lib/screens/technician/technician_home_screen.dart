@@ -45,7 +45,7 @@ class TechnicianHomeScreen extends StatelessWidget {
                       radius: 30,
                       backgroundColor: Colors.orange,
                       child: Text(
-                        user.name[0].toUpperCase(),
+                        user.fullName[0].toUpperCase(),
                         style: const TextStyle(fontSize: 24, color: Colors.white),
                       ),
                     ),
@@ -55,7 +55,7 @@ class TechnicianHomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.name,
+                            user.fullName,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -75,10 +75,11 @@ class TechnicianHomeScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          Text(
-                            'Cédula: ${user.cedula}',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          ),
+                          if (user.cedula != null)
+                            Text(
+                              'Cédula: ${user.cedula}',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            ),
                         ],
                       ),
                     ),
@@ -99,7 +100,7 @@ class TechnicianHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
@@ -109,7 +110,7 @@ class TechnicianHomeScreen extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.star,
@@ -128,14 +129,14 @@ class TechnicianHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            _RequestCard(
+            const _RequestCard(
               clientName: 'Juan Pérez',
               service: 'Reparación de tubería',
               time: 'Hace 2 horas',
               address: 'Av. Principal 123',
             ),
             const SizedBox(height: 12),
-            _RequestCard(
+            const _RequestCard(
               clientName: 'María González',
               service: 'Instalación de lavamanos',
               time: 'Hace 5 horas',

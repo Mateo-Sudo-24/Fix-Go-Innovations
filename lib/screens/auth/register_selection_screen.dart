@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'register_client_screen.dart';
-import 'register_techician_screen.dart';
+import 'register_technician_screen.dart';
 
 class RegisterSelectionScreen extends StatelessWidget  {
   const RegisterSelectionScreen({super.key});
