@@ -17,6 +17,8 @@ class AcceptedWork {
   final String? paymentReference;
   final PaymentStatus paymentStatus;
   final DateTime? paidAt;
+  final Map<String, dynamic>? paymentMetadata;
+  final Map<String, dynamic>? braintreeDeviceData;
   
   // Progreso
   final DateTime? startedAt;
@@ -50,6 +52,8 @@ class AcceptedWork {
     this.paymentReference,
     required this.paymentStatus,
     this.paidAt,
+    this.paymentMetadata,
+    this.braintreeDeviceData,
     this.startedAt,
     this.completedAt,
     this.estimatedCompletion,
@@ -89,6 +93,8 @@ class AcceptedWork {
       paidAt: json['paid_at'] != null 
           ? DateTime.parse(json['paid_at']) 
           : null,
+      paymentMetadata: json['payment_metadata'] as Map<String, dynamic>?,
+      braintreeDeviceData: json['braintree_device_data'] as Map<String, dynamic>?,
       startedAt: json['started_at'] != null
           ? DateTime.parse(json['started_at'])
           : null,
@@ -127,6 +133,8 @@ class AcceptedWork {
       'payment_reference': paymentReference,
       'payment_status': paymentStatus.name,
       'paid_at': paidAt?.toIso8601String(),
+      'payment_metadata': paymentMetadata,
+      'braintree_device_data': braintreeDeviceData,
       'started_at': startedAt?.toIso8601String(),
       'completed_at': completedAt?.toIso8601String(),
       'estimated_completion': estimatedCompletion?.toIso8601String(),

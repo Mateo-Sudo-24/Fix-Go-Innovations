@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import 'register_selection_screen.dart';
+import 'forgot_password_screen.dart';
 import '../client/client_home_screen.dart';
 import '../technician/technician_home_screen.dart';
 import '../admin/admin_home_screen.dart';
@@ -98,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   // Título
                   Text(
-                    'ConectaTécnicos',
+                    'Fix&Go Innovations',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.primary,
@@ -160,8 +161,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                       return null;
                     },
-                  ),
-                  const SizedBox(height: 24),
+                  ),                  const SizedBox(height: 12),
+
+                  // Forgot Password Button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('¿Olvidaste tu contraseña?'),
+                    ),
+                  ),                  const SizedBox(height: 24),
 
                   // Botón Login
                   SizedBox(

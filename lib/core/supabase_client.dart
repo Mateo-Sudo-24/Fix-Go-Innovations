@@ -124,3 +124,6 @@ class SupabaseService {
     }
   }
 }
+
+// Instancia global para fácil acceso
+final supabaseClient = Supabase.instance.client;

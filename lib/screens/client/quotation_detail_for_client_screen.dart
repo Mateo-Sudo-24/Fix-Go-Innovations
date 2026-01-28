@@ -591,13 +591,36 @@ class _QuotationDetailForClientScreenState
                                     value: widget.quotation.taxAmount,
                                   ),
                                 ],
+                                const Divider(),
+                                _CostRow(
+                                  label: 'Comisión de Plataforma (10%)',
+                                  value: (widget.quotation.totalAmount * 0.10),
+                                  isSubtle: true,
+                                ),
                                 const Divider(thickness: 2),
                                 _CostRow(
-                                  label: 'TOTAL',
-                                  value: widget.quotation.totalAmount,
+                                  label: 'TOTAL A PAGAR',
+                                  value: widget.quotation.totalAmount + (widget.quotation.totalAmount * 0.10),
                                   isTotal: true,
                                 ),
                               ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Text(
+                            'ℹ️ El 10% de comisión de plataforma es por el uso de nuestra app para conectarte con el técnico.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[800],
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ),
@@ -803,11 +826,13 @@ class _CostRow extends StatelessWidget {
   final String label;
   final double value;
   final bool isTotal;
+  final bool isSubtle;
 
   const _CostRow({
     required this.label,
     required this.value,
     this.isTotal = false,
+    this.isSubtle = false,
   });
 
   @override
@@ -822,6 +847,7 @@ class _CostRow extends StatelessWidget {
             style: TextStyle(
               fontSize: isTotal ? 18 : 15,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isSubtle ? Colors.grey[600] : null,
             ),
           ),
           Text(
@@ -829,7 +855,7 @@ class _CostRow extends StatelessWidget {
             style: TextStyle(
               fontSize: isTotal ? 20 : 16,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              color: isTotal ? Colors.green[700] : null,
+              color: isTotal ? Colors.green[700] : (isSubtle ? Colors.grey[600] : null),
             ),
           ),
         ],

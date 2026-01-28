@@ -282,42 +282,4 @@ class QuotationService {
       }
     }
   }
-
-// AGREGAR ESTE MÉTODO
-  Future<Map<String, dynamic>> acceptQuotationWithNavigation(
-      String quotationId) async {
-    try {
-      // 1. Aceptar la cotización
-      await _supabase
-          .from('quotations')
-          .update({'status': 'accepted'}).eq('id', quotationId);
-
-      // 2. Esperar a que el trigger cree el accepted_work
-      await Future.delayed(const Duration(seconds: 1));
-
-      // 3. Obtener el trabajo creado
-      final workResponse = await _supabase
-          .from('accepted_works')
-          .select('*')
-          .eq('quotation_id', quotationId)
-          .maybeSingle();
-
-      if (workResponse != null) {
-        return {
-          'success': true,
-          'work': workResponse,
-        };
-      } else {
-        return {
-          'success': false,
-          'error': 'No se pudo crear el trabajo. Intenta más tarde.',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'error': 'Error: ${e.toString()}',
-      };
-    }
-  }
 }

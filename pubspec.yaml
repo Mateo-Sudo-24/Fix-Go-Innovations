@@ -1,5 +1,5 @@
-name: project_final
-description: Plataforma que conecta clientes con técnicos especializados
+name: fix_go_innovations
+description: Fix&Go Innovations - Plataforma que conecta clientes con técnicos especializados
 
 publish_to: 'none'
 
@@ -34,6 +34,15 @@ dependencies:
   geolocator: ^10.1.0
 
   url_launcher: ^6.2.2
+
+  # Pagos con Braintree
+  braintree_flutter_plus: 5.1.1
+
+  # 📬 Notificaciones
+  flutter_local_notifications: ^17.0.0
+  
+  # 📳 Vibración (Haptic Feedback)
+  vibration: ^2.1.0
 
 dev_dependencies:
   flutter_test:

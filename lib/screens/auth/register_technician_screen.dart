@@ -3,6 +3,7 @@ import '../../models/user_model.dart';
 import '../../models/image_data.dart';
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
+import 'registration_confirmation_screen.dart';
 
 class RegisterTechnicianScreen extends StatefulWidget {
   const RegisterTechnicianScreen({super.key});
@@ -130,27 +131,14 @@ class _RegisterTechnicianScreenState extends State<RegisterTechnicianScreen> {
       if (!mounted) return;
 
       if (result['success']) {
-        // Mostrar diálogo de éxito
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('✅ ¡Registro exitoso!'),
-            content: const Text(
-              'Te hemos enviado un email de confirmación.\n\n'
-              'Por favor, revisa tu bandeja de entrada y confirma tu cuenta '
-              'para poder iniciar sesión como técnico.',
+        // Mostrar pantalla de confirmación
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => RegistrationConfirmationScreen(
+              email: _emailController.text.trim(),
+              userType: 'technician',
+              userName: _nameController.text.trim(),
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Cerrar diálogo
-                  Navigator.pop(context); // Volver a selección
-                  Navigator.pop(context); // Volver a login
-                },
-                child: const Text('Entendido'),
-              ),
-            ],
           ),
         );
       } else {

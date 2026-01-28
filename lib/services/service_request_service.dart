@@ -69,6 +69,35 @@ class ServiceRequestService {
     }
   }
 
+  // ==================== OBTENER SOLICITUD CON IMÁGENES ====================
+  Future<ServiceRequest?> getServiceRequestWithImages(String requestId) async {
+    try {
+      final response = await _supabase
+          .from('service_requests')
+          .select('*')
+          .eq('id', requestId)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      final imagesResponse = await _supabase
+          .from('service_request_images')
+          .select('image_url')
+          .eq('request_id', requestId);
+
+      final imageUrls =
+          imagesResponse.map((img) => img['image_url'] as String).toList();
+
+      return ServiceRequest.fromJson({
+        ...response,
+        'image_urls': imageUrls,
+      });
+    } catch (e) {
+      print('❌ Error al obtener solicitud con imágenes: $e');
+      return null;
+    }
+  }
+
   // ==================== SUBIR IMÁGENES ====================
   Future<void> _uploadRequestImages(String requestId, List<ImageData> images) async {
     for (int i = 0; i < images.length; i++) {
