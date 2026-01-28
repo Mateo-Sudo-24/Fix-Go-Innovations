@@ -270,10 +270,27 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
             title: const Text('Ayuda y Soporte'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: Implementar ayuda
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Funcionalidad próximamente')),
-              );
+              // Ir a Help & Support (Netlify URL)
+              Navigator.pushNamed(context, '/help_support');
+            },
+          ),
+          const Divider(),
+          // Cambiar contraseña
+          ListTile(
+            leading: const Icon(Icons.lock),
+            title: const Text('Cambiar Contraseña'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pushNamed(context, '/reset_password');
+            },
+          ),
+          // Forgot Password
+          ListTile(
+            leading: const Icon(Icons.lock_open),
+            title: const Text('¿Olvidaste tu Contraseña?'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pushNamed(context, '/forgot_password');
             },
           ),
           const Divider(),

@@ -3,6 +3,8 @@ import '../../models/user_model.dart';
 import '../../models/image_data.dart';
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
+import 'registration_confirmation_screen.dart';
+import '../../widgets/dynamic_sector_selector.dart';
 
 class RegisterClientScreen extends StatefulWidget {
   const RegisterClientScreen({super.key});
@@ -18,13 +20,13 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _sectorController = TextEditingController();
   final _authService = AuthService();
   final _storageService = StorageService();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String _selectedSector = '';
   ImageData? _profileImageData;
 
   @override
@@ -34,7 +36,6 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _phoneController.dispose();
-    _sectorController.dispose();
     super.dispose();
   }
 
@@ -94,7 +95,7 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
         fullName: _nameController.text.trim(),
         role: UserRole.client,
         phone: _phoneController.text.trim(),
-        sector: _sectorController.text.trim(),
+        sector: _selectedSector.trim(),
       );
 
       final result = await _authService.register(
@@ -107,16 +108,24 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message']),
-          backgroundColor: result['success'] ? Colors.green : Colors.red,
-        ),
-      );
-
       if (result['success']) {
-        Navigator.pop(context);
-        Navigator.pop(context);
+        // Mostrar pantalla de confirmación
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => RegistrationConfirmationScreen(
+              email: _emailController.text.trim(),
+              userType: 'client',
+              userName: _nameController.text.trim(),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -300,18 +309,12 @@ class _RegisterClientScreenState extends State<RegisterClientScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _sectorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Sector donde vives',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                    hintText: 'Ej: Norte de Quito, La Carolina',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ingresa tu sector';
-                    }
-                    return null;
+                // Widget dinámico de sector
+                DynamicSectorSelector(
+                  onSectorSelected: (sector, location) {
+                    setState(() {
+                      _selectedSector = sector;
+                    });
                   },
                 ),
                 const SizedBox(height: 32),

@@ -235,9 +235,20 @@ class _HomeTabState extends State<_HomeTab> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              widget.user.sector ?? 'Sin ubicación',
-                              style: TextStyle(color: Colors.grey[600]),
+                            GestureDetector(
+                              onTap: () {
+                                // Navegar al perfil
+                                final parent = context.findAncestorStateOfType<_ClientHomeScreenState>();
+                                parent?.setState(() => parent._currentIndex = 2);
+                              },
+                              child: Text(
+                                '📍 ${widget.user.sector ?? 'Sin ubicación'} → Ver perfil',
+                                style: TextStyle(
+                                  color: Colors.blue[600],
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
                             ),
                           ],
                         ),

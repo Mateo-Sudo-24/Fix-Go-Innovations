@@ -1,8 +1,15 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/work_and_chat_models.dart';
+import '../models/payment_model.dart' as payment_models;
+import 'payment_service.dart';
 
 class WorkService {
   final _supabase = Supabase.instance.client;
+  late final PaymentService _paymentService;
+
+  WorkService() {
+    _paymentService = PaymentService();
+  }
 
   // ==================== OBTENER TRABAJO POR COTIZACIÓN ====================
   Future<AcceptedWork?> getWorkByQuotation(String quotationId) async {
@@ -140,6 +147,144 @@ class WorkService {
       return true;
     } catch (e) {
       print('❌ Error al registrar pago: $e');
+      return false;
+    }
+  }
+
+  // ==================== SUBMIT PAYMENT - CREAR TRANSACCIÓN CON BRAINTREE ====================
+  Future<payment_models.Payment> submitPayment({
+    required String workId,
+    required double amount,
+  }) async {
+    try {
+      // Obtener info del trabajo
+      final work = await getWorkByQuotation(workId);
+      if (work == null) {
+        throw Exception('Trabajo no encontrado');
+      }
+
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      // En realidad, el nonce se genera en PaymentScreen después de BraintreeDropIn
+      // Este método es para crear el registro de pago
+      final payment = payment_models.Payment(
+        id: _paymentService.generatePaymentId(),
+        workId: workId,
+        amount: amount,
+        platformFee: amount * 0.10,
+        technicianAmount: amount * 0.90,
+        status: payment_models.PaymentStatus.pending,
+        braintreeNonce: null,
+        braintreeTransactionId: null,
+        paymentMethod: payment_models.PaymentMethodType.creditCard,
+        clientId: userId,
+        technicianId: work.technicianId,
+        createdAt: DateTime.now(),
+      );
+
+      print('✅ Pago iniciado con Braintree: ${payment.id}');
+      return payment;
+    } catch (e) {
+      print('❌ Error al enviar pago: $e');
+      rethrow;
+    }
+  }
+
+  // ==================== UPDATE PAYMENT STATUS ====================
+  Future<bool> updatePaymentStatus({
+    required String paymentId,
+    required payment_models.PaymentStatus newStatus,
+    String? failureReason,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': newStatus.toString().split('.').last,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (newStatus == payment_models.PaymentStatus.completed) {
+        updates['completed_at'] = DateTime.now().toIso8601String();
+      }
+
+      if (failureReason != null && newStatus == payment_models.PaymentStatus.failed) {
+        updates['failure_reason'] = failureReason;
+      }
+
+      await _supabase.from('payments').update(updates).eq('id', paymentId);
+
+      print('✅ Estado de pago actualizado: ${newStatus.name}');
+      return true;
+    } catch (e) {
+      print('❌ Error al actualizar estado de pago: $e');
+      return false;
+    }
+  }
+
+  // ==================== GET PAYMENT - OBTENER DETALLES DEL PAGO ====================
+  Future<payment_models.Payment?> getPayment(String paymentId) async {
+    try {
+      return await _paymentService.getPayment(paymentId);
+    } catch (e) {
+      print('❌ Error al obtener pago: $e');
+      return null;
+    }
+  }
+
+  // ==================== GET CLIENT PAYMENTS ====================
+  Future<List<payment_models.Payment>> getClientPayments() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
+      return await _paymentService.getClientPayments(userId);
+    } catch (e) {
+      print('❌ Error al obtener pagos del cliente: $e');
+      return [];
+    }
+  }
+
+  // ==================== GET TECHNICIAN PAYMENTS ====================
+  Future<List<payment_models.Payment>> getTechnicianPayments() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
+      return await _paymentService.getTechnicianPayments(userId);
+    } catch (e) {
+      print('❌ Error al obtener pagos del técnico: $e');
+      return [];
+    }
+  }
+
+  // ==================== PROCESS WORK AFTER PAYMENT ====================
+  Future<bool> processWorkAfterPayment({
+    required String workId,
+    required payment_models.Payment payment,
+  }) async {
+    try {
+      // 1. Actualizar estado del trabajo a 'on_way'
+      final statusUpdated = await updateWorkStatus(workId, WorkStatus.on_way);
+      if (!statusUpdated) {
+        throw Exception('No se pudo actualizar el estado del trabajo');
+      }
+
+      // 2. Registrar el pago
+      final paymentRegistered = await registerPayment(
+        workId: workId,
+        paymentMethod: payment.paymentMethod.toString().split('.').last,
+        paymentReference: payment.braintreeTransactionId,
+      );
+      if (!paymentRegistered) {
+        throw Exception('No se pudo registrar el pago');
+      }
+
+      print('✅ Trabajo procesado después del pago');
+      return true;
+    } catch (e) {
+      print('❌ Error al procesar trabajo después del pago: $e');
       return false;
     }
   }
@@ -361,7 +506,7 @@ class ChatService {
           .eq('is_read', false)
           .count(CountOption.exact);
 
-      return response.count ?? 0;
+      return response.count;
     } catch (e) {
       print('❌ Error al contar mensajes no leídos: $e');
       return 0;

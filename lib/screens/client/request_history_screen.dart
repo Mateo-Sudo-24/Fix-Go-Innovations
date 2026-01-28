@@ -525,6 +525,7 @@ class _RequestHistoryScreenState extends State<RequestHistoryScreen> {
                                             builder: (_) =>
                                                 QuotationsForRequestScreen(
                                               request: request,
+                                              user: widget.user,
                                             ),
                                           ),
                                         ).then((_) => _loadRequests());

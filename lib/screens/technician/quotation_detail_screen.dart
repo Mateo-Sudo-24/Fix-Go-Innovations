@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/quotation_model.dart';
+import '../../models/user_model.dart';
 
 class QuotationDetailScreen extends StatelessWidget {
   final Quotation quotation;
+  final UserModel user;
 
   const QuotationDetailScreen({
     super.key,
     required this.quotation,
+    required this.user,
   });
 
   Color _getStatusColor(QuotationStatus status) {

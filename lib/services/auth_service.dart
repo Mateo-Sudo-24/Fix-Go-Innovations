@@ -215,6 +215,144 @@ class AuthService {
     }
   }
 
+  // ==================== ACTUALIZAR PERFIL ====================
+  Future<Map<String, dynamic>> updateUserProfile({
+    required String userId,
+    String? fullName,
+    String? phone,
+    String? sector,
+    String? specialty,
+    String? cedula,
+    ImageData? profileImageData,
+  }) async {
+    try {
+      print('🔄 Actualizando perfil del usuario: $userId');
+
+      String? photoUrl;
+      
+      // Subir nueva foto si existe
+      if (profileImageData != null) {
+        try {
+          photoUrl = await _storageService.uploadProfilePhoto(
+            profileImageData,
+            userId,
+          );
+          print('✅ Foto actualizada: $photoUrl');
+        } catch (e) {
+          print('⚠️ Error al subir foto: $e');
+          return {
+            'success': false,
+            'message': 'Error al subir la foto de perfil',
+          };
+        }
+      }
+
+      // Construir map de actualización
+      final updateData = <String, dynamic>{};
+      if (fullName != null) updateData['full_name'] = fullName;
+      if (phone != null) updateData['phone'] = phone;
+      if (sector != null) updateData['address'] = sector;
+      if (specialty != null) updateData['specialty'] = specialty;
+      if (cedula != null) updateData['cedula'] = cedula;
+      if (photoUrl != null) updateData['profile_image_url'] = photoUrl;
+
+      if (updateData.isEmpty) {
+        return {
+          'success': false,
+          'message': 'No hay cambios que actualizar',
+        };
+      }
+
+      // Actualizar en user_profiles
+      await _supabase
+          .from('user_profiles')
+          .update(updateData)
+          .eq('id', userId);
+
+      print('✅ Perfil actualizado exitosamente');
+
+      return {
+        'success': true,
+        'message': 'Perfil actualizado exitosamente',
+      };
+    } catch (e) {
+      print('❌ Error al actualizar perfil: $e');
+      return {
+        'success': false,
+        'message': 'Error: ${e.toString()}',
+      };
+    }
+  }
+
+  // ==================== CAMBIAR CONTRASEÑA ====================
+  Future<Map<String, dynamic>> updatePassword(
+    String newPassword,
+  ) async {
+    try {
+      print('🔐 Cambiando contraseña');
+
+      // Validar contraseña
+      if (newPassword.length < 6) {
+        return {
+          'success': false,
+          'message': 'La contraseña debe tener al menos 6 caracteres',
+        };
+      }
+
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      print('✅ Contraseña actualizada exitosamente');
+
+      return {
+        'success': true,
+        'message': 'Contraseña actualizada exitosamente',
+      };
+    } on AuthException catch (e) {
+      print('❌ Error al cambiar contraseña: ${e.message}');
+      return {
+        'success': false,
+        'message': _handleAuthError(e.message),
+      };
+    } catch (e) {
+      print('❌ Error inesperado: $e');
+      return {
+        'success': false,
+        'message': 'Error: ${e.toString()}',
+      };
+    }
+  }
+
+  // ==================== ELIMINAR CUENTA ====================
+  Future<Map<String, dynamic>> deleteAccount(String userId) async {
+    try {
+      print('🗑️ Eliminando cuenta: $userId');
+
+      // Marcar usuario como eliminado en lugar de borrar
+      await _supabase
+          .from('user_profiles')
+          .update({'is_deleted': true})
+          .eq('id', userId);
+
+      // Cerrar sesión
+      await logout();
+
+      print('✅ Cuenta eliminada exitosamente');
+
+      return {
+        'success': true,
+        'message': 'Cuenta eliminada exitosamente',
+      };
+    } catch (e) {
+      print('❌ Error al eliminar cuenta: $e');
+      return {
+        'success': false,
+        'message': 'Error: ${e.toString()}',
+      };
+    }
+  }
+
   // ==================== STREAM DE CAMBIOS DE AUTH ====================
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 

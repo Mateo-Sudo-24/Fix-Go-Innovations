@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/service_request_model.dart';
 import '../../models/quotation_model.dart';
+import '../../models/user_model.dart';
 import '../../services/quotation_service.dart';
 import 'quotation_detail_for_client_screen.dart';
 
 class QuotationsForRequestScreen extends StatefulWidget {
   final ServiceRequest request;
+  final UserModel user;
 
   const QuotationsForRequestScreen({
     super.key,
     required this.request,
+    required this.user,
   });
 
   @override
@@ -170,6 +173,7 @@ class _QuotationsForRequestScreenState
                                           QuotationDetailForClientScreen(
                                         quotation: quotation,
                                         request: widget.request,
+                                        user: widget.user,
                                         onStatusChanged: _loadQuotations,
                                       ),
                                     ),
@@ -394,6 +398,7 @@ class _QuotationsForRequestScreenState
                                                       QuotationDetailForClientScreen(
                                                     quotation: quotation,
                                                     request: widget.request,
+                                                    user: widget.user,
                                                     onStatusChanged:
                                                         _loadQuotations,
                                                   ),

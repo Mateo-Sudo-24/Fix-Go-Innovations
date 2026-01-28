@@ -453,7 +453,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                                     children: [
                                       TileLayer(
                                         urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                        userAgentPackageName: 'com.conectatecnicos.app',
+                                        userAgentPackageName: 'com.fixgoinnovations.app',
                                       ),
                                       MarkerLayer(
                                         markers: [

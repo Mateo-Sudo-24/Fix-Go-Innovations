@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/work_and_chat_models.dart';
-import '../../services/work_and_chat_service.dart';
+import 'payment_screen.dart';
 
 class PaymentTab extends StatefulWidget {
   final AcceptedWork work;
@@ -19,54 +19,20 @@ class PaymentTab extends StatefulWidget {
 }
 
 class _PaymentTabState extends State<PaymentTab> {
-  final _workService = WorkService();
   String _selectedPaymentMethod = 'efectivo';
-  bool _isProcessing = false;
 
   Future<void> _processPayment() async {
-    setState(() => _isProcessing = true);
-
-    // ════════════════════════════════════════════════════════════
-    // 🔌 AQUÍ TU COMPAÑERO INTEGRARÁ LA API EXTERNA DE PAGOS
-    // ════════════════════════════════════════════════════════════
-    // 
-    // Ejemplo de lo que haría:
-    // 
-    // final paymentResult = await ExternalPaymentAPI.processPayment(
-    //   amount: widget.work.paymentAmount,
-    //   method: _selectedPaymentMethod,
-    //   workId: widget.work.id,
-    //   description: 'Pago por servicio',
-    // );
-    // 
-    // if (paymentResult.success) {
-    //   final reference = paymentResult.transactionId;
-    //   // Continuar con el registro en Supabase...
-    // }
-    // ════════════════════════════════════════════════════════════
-
-    // Por ahora, simulamos el proceso
-    await Future.delayed(const Duration(seconds: 2));
-
-    final success = await _workService.registerPayment(
-      workId: widget.work.id,
-      paymentMethod: _selectedPaymentMethod,
-      paymentReference: 'SIMULATED-${DateTime.now().millisecondsSinceEpoch}',
+    // Navegar a la pantalla de pago con Braintree
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentScreen(work: widget.work),
+      ),
     );
 
-    setState(() => _isProcessing = false);
-
-    if (!mounted) return;
-
-    if (success) {
+    // Si el pago fue exitoso, notificar al padre
+    if (result == true && mounted) {
       widget.onPaymentCompleted();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al procesar el pago'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -225,15 +191,15 @@ class _PaymentTabState extends State<PaymentTab> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700]),
+                      Icon(Icons.check_circle, color: Colors.green[700]),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '🔌 Integración de Pasarela de Pago Externa',
+                          '✅ Pago con Braintree',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue[900],
+                            color: Colors.green[900],
                           ),
                         ),
                       ),
@@ -241,9 +207,8 @@ class _PaymentTabState extends State<PaymentTab> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Este es el espacio donde se integrará la API externa de pagos. '
-                    'Tu compañero puede reemplazar la función _processPayment() '
-                    'con la llamada a la API real.',
+                    'Pago seguro con tarjeta de crédito, débito o PayPal. '
+                    'Tu información está protegida con encriptación de Braintree.',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[800],
@@ -259,21 +224,10 @@ class _PaymentTabState extends State<PaymentTab> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _processPayment,
-                icon: _isProcessing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.payment),
+                onPressed: _processPayment,
+                icon: const Icon(Icons.credit_card),
                 label: Text(
-                  _isProcessing
-                      ? 'Procesando...'
-                      : 'Confirmar Pago (\$${widget.work.paymentAmount.toStringAsFixed(2)})',
+                  'Pagar con Braintree (\$${widget.work.paymentAmount.toStringAsFixed(2)})',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
