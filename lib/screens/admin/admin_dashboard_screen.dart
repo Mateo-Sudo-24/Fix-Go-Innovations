@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../services/admin/admin_service.dart';
-import '../../services/reports/user_report_block_service.dart';
 import 'package:intl/intl.dart';
-import '../../models/reports/user_report_block_models.dart';
+import '../../models/user_model.dart';
+import '../../models/admin/admin_models.dart';
+import '../../services/admin_service.dart';
+import '../../services/auth_service.dart';
+import '../auth/login_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({Key? key}) : super(key: key);
+  final UserModel user;
+
+  const AdminDashboardScreen({super.key, required this.user});
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
@@ -14,13 +18,20 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late AdminService _adminService;
+  final _adminService = AdminService();
+  final _authService = AuthService();
+
+  PlatformStats? _stats;
+  List<ActivityLog> _recentActivity = [];
+  List<TopTechnician> _topTechnicians = [];
+  List<PaymentTransaction> _recentTransactions = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _adminService = AdminService();
+    _tabController = TabController(length: 6, vsync: this);
+    _loadData();
   }
 
   @override
@@ -29,35 +40,342 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.dispose();
   }
 
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    final stats = await _adminService.getPlatformStats();
+    final activity = await _adminService.getRecentActivity(limit: 20);
+    final topTechs = await _adminService.getTopTechnicians(limit: 5);
+    final transactions = await _adminService.getAllTransactions();
+
+    setState(() {
+      _stats = stats;
+      _recentActivity = activity;
+      _topTechnicians = topTechs;
+      _recentTransactions = transactions.take(10).toList();
+      _isLoading = false;
+    });
+  }
+
+  void _logout() {
+    _authService.logout();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Panel Administrativo'),
-          elevation: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Resumen'),
-              Tab(text: 'Usuarios'),
-              Tab(text: 'Reportes'),
-              Tab(text: 'Finanzas'),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Panel de Administración'),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
           ),
-        ),
-        body: TabBarView(
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
+        bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard), text: 'Dashboard'),
+            Tab(icon: Icon(Icons.people), text: 'Usuarios'),
+            Tab(icon: Icon(Icons.work), text: 'Solicitudes'),
+            Tab(icon: Icon(Icons.description), text: 'Cotizaciones'),
+            Tab(icon: Icon(Icons.payment), text: 'Pagos'),
+            Tab(icon: Icon(Icons.history), text: 'Actividad'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _DashboardTab(
+            stats: _stats,
+            topTechnicians: _topTechnicians,
+            recentTransactions: _recentTransactions,
+            isLoading: _isLoading,
+            onRefresh: _loadData,
+          ),
+          _UsersTab(),
+          _RequestsTab(),
+          _QuotationsTab(),
+          _PaymentsTab(),
+          _ActivityTab(activity: _recentActivity, isLoading: _isLoading),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== TAB DE DASHBOARD ====================
+class _DashboardTab extends StatelessWidget {
+  final PlatformStats? stats;
+  final List<TopTechnician> topTechnicians;
+  final List<PaymentTransaction> recentTransactions;
+  final bool isLoading;
+  final VoidCallback onRefresh;
+
+  const _DashboardTab({
+    required this.stats,
+    required this.topTechnicians,
+    required this.recentTransactions,
+    required this.isLoading,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => onRefresh(),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tab 1: Resumen
-            _OverviewTab(adminService: _adminService),
-            // Tab 2: Usuarios
-            _UsersTab(adminService: _adminService),
-            // Tab 3: Reportes
-            const _ReportsTab(),
-            // Tab 4: Finanzas
-            _FinanceTab(adminService: _adminService),
+            // Estadísticas principales
+            const Text(
+              '📊 Estadísticas Generales',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
+            if (stats != null) ...[
+              // Usuarios
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.people,
+                      title: 'Usuarios Totales',
+                      value: '${stats!.totalUsers}',
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.person,
+                      title: 'Clientes',
+                      value: '${stats!.totalClients}',
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.build,
+                      title: 'Técnicos',
+                      value: '${stats!.totalTechnicians}',
+                      color: Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Trabajos
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.work,
+                      title: 'Solicitudes',
+                      value: '${stats!.totalRequests}',
+                      color: Colors.purple,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.description,
+                      title: 'Cotizaciones',
+                      value: '${stats!.totalQuotations}',
+                      color: Colors.teal,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.check_circle,
+                      title: 'Completados',
+                      value: '${stats!.totalCompletedWorks}',
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Ingresos
+              Card(
+                color: Colors.green[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ingresos Totales',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${stats!.totalRevenue.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(Icons.attach_money,
+                              size: 64, color: Colors.green[200]),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Comisión Plataforma (10%)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '\$${stats!.platformEarnings.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.purple,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pagado a Técnicos',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '\$${stats!.technicianEarnings.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Top Técnicos
+              const Text(
+                '⭐ Top Técnicos',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              ...topTechnicians.map((tech) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.orange,
+                        child: Text(
+                          tech.technicianName[0].toUpperCase(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(tech.technicianName),
+                      subtitle: Text(
+                        '${tech.completedWorks} trabajos • ${tech.averageRating?.toStringAsFixed(1) ?? '-'} ⭐',
+                      ),
+                      trailing: Text(
+                        '\$${tech.totalEarned.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  )),
+              const SizedBox(height: 24),
+
+              // Transacciones Recientes
+              const Text(
+                '💳 Últimas Transacciones',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              ...recentTransactions.take(5).map((transaction) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: Icon(
+                        transaction.status == 'completed'
+                            ? Icons.check_circle
+                            : Icons.pending,
+                        color: transaction.status == 'completed'
+                            ? Colors.green
+                            : Colors.orange,
+                      ),
+                      title: Text(
+                        '\$${transaction.totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Comisión: \$${transaction.platformFee.toStringAsFixed(2)} • ${transaction.paymentMethod}',
+                      ),
+                      trailing: Text(
+                        DateFormat('dd/MM/yyyy').format(transaction.transactionDate),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ),
+                  )),
+            ],
           ],
         ),
       ),
@@ -65,593 +383,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 }
 
-// Tab 1: Resumen
-class _OverviewTab extends StatelessWidget {
-  final AdminService adminService;
-
-  const _OverviewTab({required this.adminService});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FutureBuilder<Map<String, dynamic>>(
-            future: adminService.getSystemStats(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final stats = snapshot.data ?? {};
-
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Usuarios Totales',
-                          value: '${stats['total_users'] ?? 0}',
-                          icon: Icons.people,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Trabajos',
-                          value: '${stats['completed_works'] ?? 0}',
-                          icon: Icons.work,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Ingresos',
-                          value: '\$${((stats['total_revenue'] ?? 0) as num).toStringAsFixed(2)}',
-                          icon: Icons.money,
-                          color: Colors.amber,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Reportes Pendientes',
-                          value: '${stats['pending_reports'] ?? 0}',
-                          icon: Icons.warning,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Estado de Trabajos',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          FutureBuilder<Map<String, dynamic>>(
-            future: adminService.getWorkStats(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final stats = snapshot.data ?? {};
-
-              return Column(
-                children: [
-                  _buildWorkStatRow(
-                    'Pendiente de Pago',
-                    stats['pending_payment'] as int? ?? 0,
-                    Colors.orange,
-                  ),
-                  _buildWorkStatRow(
-                    'En Camino',
-                    stats['on_way'] as int? ?? 0,
-                    Colors.blue,
-                  ),
-                  _buildWorkStatRow(
-                    'En Progreso',
-                    stats['in_progress'] as int? ?? 0,
-                    Colors.purple,
-                  ),
-                  _buildWorkStatRow(
-                    'Completado',
-                    stats['completed'] as int? ?? 0,
-                    Colors.green,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWorkStatRow(String label, int count, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(label),
-            ],
-          ),
-          Text(
-            '$count',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Tab 2: Usuarios
-class _UsersTab extends StatefulWidget {
-  final AdminService adminService;
-
-  const _UsersTab({required this.adminService});
-
-  @override
-  State<_UsersTab> createState() => _UsersTabState();
-}
-
-class _UsersTabState extends State<_UsersTab> {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showBlockedUsers(context),
-                  icon: const Icon(Icons.block),
-                  label: const Text('Ver Bloqueados'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showActiveUsers(context),
-                  icon: const Icon(Icons.people),
-                  label: const Text('Activos'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: widget.adminService.getMostReportedUsers(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final users = snapshot.data ?? [];
-
-              if (users.isEmpty) {
-                return const Center(
-                  child: Text('No hay usuarios reportados'),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return _UserCard(
-                    user: user,
-                    adminService: widget.adminService,
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showBlockedUsers(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Usuarios Bloqueados'),
-        content: FutureBuilder<List<Map<String, dynamic>>>(
-          future: widget.adminService.getBlockedUsers(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-
-            final users = snapshot.data ?? [];
-
-            if (users.isEmpty) {
-              return const Text('No hay usuarios bloqueados');
-            }
-
-            return SizedBox(
-              width: 300,
-              child: ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return ListTile(
-                    title: Text(user['full_name'] ?? 'Usuario'),
-                    subtitle: Text(user['block_reason'] ?? ''),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.check),
-                      onPressed: () async {
-                        await widget.adminService
-                            .unblockUser(user['id']);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showActiveUsers(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Usuarios Activos (Últimos 30 días)'),
-        content: FutureBuilder<List<Map<String, dynamic>>>(
-          future: widget.adminService.getActiveUsers(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-
-            final users = snapshot.data ?? [];
-
-            if (users.isEmpty) {
-              return const Text('No hay usuarios activos');
-            }
-
-            return SizedBox(
-              width: 300,
-              child: ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return ListTile(
-                    title: Text(user['full_name'] ?? 'Usuario'),
-                    subtitle: Text(user['role'] ?? ''),
-                    trailing: Text(
-                      user['email'] ?? '',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Tab 3: Reportes
-class _ReportsTab extends StatefulWidget {
-  const _ReportsTab();
-
-  @override
-  State<_ReportsTab> createState() => _ReportsTabState();
-}
-
-class _ReportsTabState extends State<_ReportsTab> {
-  late UserReportService _reportService;
-
-  @override
-  void initState() {
-    super.initState();
-    _reportService = UserReportService();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: () => _showReportStats(context),
-            icon: const Icon(Icons.show_chart),
-            label: const Text('Ver Estadísticas'),
-          ),
-        ),
-        Expanded(
-          child: FutureBuilder<List<UserReportModel>>(
-            future: _reportService.getPendingReports(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final reports = snapshot.data ?? [];
-
-              if (reports.isEmpty) {
-                return const Center(
-                  child: Text('No hay reportes pendientes'),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: reports.length,
-                itemBuilder: (context, index) {
-                  final report = reports[index];
-                  return _ReportCard(
-                    report: report,
-                    reportService: _reportService,
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showReportStats(BuildContext context) {
-    // Estadísticas de reportes por razón
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Estadísticas de Reportes'),
-        content: FutureBuilder<Map<String, dynamic>>(
-          future: AdminService().getReportsByReason(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-
-            final stats = snapshot.data ?? {};
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: stats.entries
-                  .map((e) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(e.key),
-                            Text('${e.value}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                )),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Tab 4: Finanzas
-class _FinanceTab extends StatelessWidget {
-  final AdminService adminService;
-
-  const _FinanceTab({required this.adminService});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Analítica de Pagos',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          FutureBuilder<Map<String, dynamic>>(
-            future: adminService.getPaymentAnalytics(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final analytics = snapshot.data ?? {};
-
-              return Column(
-                children: [
-                  _buildFinanceRow(
-                    'Procesado Total',
-                    '\$${((analytics['total_processed'] ?? 0) as num).toStringAsFixed(2)}',
-                  ),
-                  _buildFinanceRow(
-                    'Comisión Plataforma',
-                    '\$${((analytics['total_platform_fee'] ?? 0) as num).toStringAsFixed(2)}',
-                  ),
-                  _buildFinanceRow(
-                    'Pago a Técnicos',
-                    '\$${((analytics['total_technician_amount'] ?? 0) as num).toStringAsFixed(2)}',
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  _buildFinanceRow(
-                    'Pagos Exitosos',
-                    '${analytics['successful_payments'] ?? 0}',
-                  ),
-                  _buildFinanceRow(
-                    'Pagos Fallidos',
-                    '${analytics['failed_payments'] ?? 0}',
-                  ),
-                  _buildFinanceRow(
-                    'Tasa de Éxito',
-                    '${((analytics['success_rate'] ?? 0) as num).toStringAsFixed(1)}%',
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Ingresos por Período',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: adminService.getRevenueByPeriod(days: 30),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final revenueData = snapshot.data ?? [];
-
-              if (revenueData.isEmpty) {
-                return const Center(child: Text('Sin datos'));
-              }
-
-              return Column(
-                children: revenueData
-                    .map((item) => _buildFinanceRow(
-                          item['date'] as String,
-                          '\$${((item['revenue'] ?? 0) as num).toStringAsFixed(2)} (${item['transactions']} tx)',
-                        ))
-                    .toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFinanceRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Widgets auxiliares
-
+// ==================== STAT CARD ====================
 class _StatCard extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String value;
-  final IconData icon;
   final Color color;
 
   const _StatCard({
+    required this.icon,
     required this.title,
     required this.value,
-    required this.icon,
     required this.color,
   });
 
@@ -661,20 +403,22 @@ class _StatCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -684,138 +428,176 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _UserCard extends StatelessWidget {
-  final Map<String, dynamic> user;
-  final AdminService adminService;
+// ==================== ACTIVITY TAB ====================
+class _ActivityTab extends StatelessWidget {
+  final List<ActivityLog> activity;
+  final bool isLoading;
 
-  const _UserCard({
-    required this.user,
-    required this.adminService,
+  const _ActivityTab({
+    required this.activity,
+    required this.isLoading,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text('${user['user']?['full_name'] ?? 'Usuario'} (${user['count']} reportes)'),
-        subtitle: Text(user['user']?['email'] ?? ''),
-        trailing: PopupMenuButton(
-          onSelected: (value) {
-            if (value == 'block') {
-              _blockUser(context);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'block',
-              child: Text('Bloquear usuario'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  void _blockUser(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bloquear Usuario'),
-        content: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Razón del bloqueo',
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: activity.length,
+      itemBuilder: (context, index) {
+        final log = activity[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: Text(
+              log.actionIcon,
+              style: const TextStyle(fontSize: 24),
+            ),
+            title: Text(log.description),
+            subtitle: Text(
+              '${log.userEmail ?? 'Sistema'} • ${DateFormat('dd/MM/yyyy HH:mm').format(log.createdAt)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
           ),
-          onChanged: (reason) {
-            // Guardar razón
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              // Bloquear usuario
-              Navigator.pop(context);
-            },
-            child: const Text('Bloquear'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _ReportCard extends StatelessWidget {
-  final UserReportModel report;
-  final UserReportService reportService;
+// ==================== USERS TAB ====================
+class _UsersTab extends StatefulWidget {
+  @override
+  State<_UsersTab> createState() => _UsersTabState();
+}
 
-  const _ReportCard({
-    required this.report,
-    required this.reportService,
-  });
+class _UsersTabState extends State<_UsersTab> {
+  final _adminService = AdminService();
+  List<UserModel> _users = [];
+  bool _isLoading = true;
+  String _roleFilter = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() => _isLoading = true);
+    final users = await _adminService.getAllUsers(roleFilter: _roleFilter);
+    setState(() {
+      _users = users;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  report.reason.name.replaceAll('_', ' ').toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(report.createdAt),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(report.description),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await reportService.resolveReport(
-                        report.id,
-                        status: 'resolved',
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    child: const Text('Resolver'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      await reportService.resolveReport(
-                        report.id,
-                        status: 'dismissed',
-                      );
-                    },
-                    child: const Text('Descartar'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: const Text('Todos'),
+                selected: _roleFilter == 'all',
+                onSelected: (_) {
+                  setState(() => _roleFilter = 'all');
+                  _loadUsers();
+                },
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Clientes'),
+                selected: _roleFilter == 'client',
+                onSelected: (_) {
+                  setState(() => _roleFilter = 'client');
+                  _loadUsers();
+                },
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Técnicos'),
+                selected: _roleFilter == 'technician',
+                onSelected: (_) {
+                  setState(() => _roleFilter = 'technician');
+                  _loadUsers();
+                },
+              ),
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _users.length,
+                  itemBuilder: (context, index) {
+                    final user = _users[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: user.role == 'client'
+                              ? Colors.blue
+                              : Colors.orange,
+                          child: Icon(
+                            user.role == 'client' ? Icons.person : Icons.build,
+                            color: Colors.white,
+                          ),
+                        ),
+                        title: Text(user.fullName),
+                        subtitle: Text('${user.email}\n${user.phoneNumber ?? 'Sin teléfono'}'),
+                        isThreeLine: true,
+                        trailing: Chip(
+                          label: Text(
+                            user.role == 'client' ? 'Cliente' : 'Técnico',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          backgroundColor: user.role == 'client'
+                              ? Colors.blue[100]
+                              : Colors.orange[100],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ==================== PLACEHOLDER TABS ====================
+class _RequestsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Vista de Solicitudes - En construcción'),
+    );
+  }
+}
+
+class _QuotationsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Vista de Cotizaciones - En construcción'),
+    );
+  }
+}
+
+class _PaymentsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Vista de Pagos - En construcción'),
     );
   }
 }

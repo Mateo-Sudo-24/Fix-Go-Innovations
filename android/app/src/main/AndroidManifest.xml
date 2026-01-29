@@ -49,13 +49,13 @@
                 <!-- Reset Password -->
                 <data
                     android:scheme="https"
-                    android:host="vercel-deeplink.vercel.app"
+                    android:host="deep-links-gofix.netlify.app"
                     android:pathPrefix="/reset-password" />
 
                 <!-- Confirm Email -->
                 <data
                     android:scheme="https"
-                    android:host="vercel-deeplink.vercel.app"
+                    android:host="deep-links-gofix.netlify.app"
                     android:pathPrefix="/confirm-email" />
 
                 <!-- Opcional: wildcard para cubrir cualquier sub-path o query params extra (muy útil con Supabase) -->
