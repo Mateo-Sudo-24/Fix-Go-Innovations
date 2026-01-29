@@ -40,29 +40,24 @@
               android:name="flutter_deeplinking_enabled"
               android:value="true"
               />
-            <!-- 🌐 HTTPS Deep Links con App Links (Vercel fallback) -->
+            <!-- 🌐 HTTPS Deep Links con App Links (Netlify - deep-links-gofix.netlify.app) -->
+            <!-- Verificado automáticamente por Android; requiere assetlinks.json en /.well-known/ -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- Reset Password -->
+                <!-- Reset Password: https://deep-links-gofix.netlify.app/reset-password?token=XXX&type=recovery -->
                 <data
                     android:scheme="https"
-                    android:host="vercel-deeplink.vercel.app"
+                    android:host="deep-links-gofix.netlify.app"
                     android:pathPrefix="/reset-password" />
 
-                <!-- Confirm Email -->
+                <!-- Confirm Email: https://deep-links-gofix.netlify.app/confirm-email?token=XXX&type=signup -->
                 <data
                     android:scheme="https"
-                    android:host="vercel-deeplink.vercel.app"
+                    android:host="deep-links-gofix.netlify.app"
                     android:pathPrefix="/confirm-email" />
-
-                <!-- Opcional: wildcard para cubrir cualquier sub-path o query params extra (muy útil con Supabase) -->
-                <!-- <data
-                    android:scheme="https"
-                    android:host="vercel-deeplink.vercel.app"
-                    android:pathPattern="/.*" /> -->
             </intent-filter>
 
             <!-- 📱 Custom Scheme (fixgo://) para desarrollo y fallback -->
