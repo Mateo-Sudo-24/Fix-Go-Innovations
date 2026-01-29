@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/admin/admin_service.dart';
 import '../auth/login_screen.dart';
 
-class AdminHomeScreen extends StatelessWidget {
+class AdminHomeScreen extends StatefulWidget {
   final UserModel user;
-  final _authService = AuthService();
 
-  AdminHomeScreen({super.key, required this.user});
+  const AdminHomeScreen({super.key, required this.user});
+
+  @override
+  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+}
+
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final _authService = AuthService();
+  final _adminService = AdminService();
+
+  late Future<Map<String, dynamic>> _statsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _statsFuture = _adminService.getSystemStats();
+  }
 
   void _logout(BuildContext context) {
     _authService.logout();
@@ -45,8 +61,9 @@ class AdminHomeScreen extends StatelessWidget {
                       radius: 30,
                       backgroundColor: Colors.purple,
                       child: Text(
-                        user.fullName[0].toUpperCase(),
-                        style: const TextStyle(fontSize: 24, color: Colors.white),
+                        widget.user.fullName[0].toUpperCase(),
+                        style:
+                            const TextStyle(fontSize: 24, color: Colors.white),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -55,7 +72,7 @@ class AdminHomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.fullName,
+                            widget.user.fullName,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -64,10 +81,8 @@ class AdminHomeScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.admin_panel_settings, 
-                                size: 16, 
-                                color: Colors.purple[700]
-                              ),
+                              Icon(Icons.admin_panel_settings,
+                                  size: 16, color: Colors.purple[700]),
                               const SizedBox(width: 4),
                               Text(
                                 'Administrador',
@@ -86,58 +101,79 @@ class AdminHomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+            FutureBuilder<Map<String, dynamic>>(
+              future: _statsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-            const Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.people,
-                    title: 'Usuarios',
-                    value: '247',
-                    color: Colors.blue,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.engineering,
-                    title: 'Técnicos',
-                    value: '89',
-                    color: Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.assignment,
-                    title: 'Servicios',
-                    value: '156',
-                    color: Colors.green,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.attach_money,
-                    title: 'Ingresos',
-                    value: '\$12.5K',
-                    color: Colors.teal,
-                  ),
-                ),
-              ],
+                final stats = snapshot.data ?? {};
+                final totalUsers = stats['total_users']?.toString() ?? '0';
+                final totalTechs =
+                    stats['total_technicians']?.toString() ?? '0';
+                final totalRequests =
+                    stats['total_requests']?.toString() ?? '0';
+                final totalRevenue =
+                    stats['total_revenue']?.toStringAsFixed(2) ?? '0.00';
+
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            icon: Icons.people,
+                            title: 'Usuarios',
+                            value: totalUsers,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            icon: Icons.engineering,
+                            title: 'Técnicos',
+                            value: totalTechs,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            icon: Icons.assignment,
+                            title: 'Servicios',
+                            value: totalRequests,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            icon: Icons.attach_money,
+                            title: 'Ingresos',
+                            value: '\$$totalRevenue',
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
-
             const Text(
               'Acciones Rápidas',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

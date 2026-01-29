@@ -15,12 +15,12 @@ class AuthService {
   ) async {
     try {
       print('📝 PASO 1/5: Iniciando registro para: ${user.email}');
-      
+
       // 1️⃣ CREAR USUARIO EN SUPABASE AUTH
       final AuthResponse authResponse = await _supabase.auth.signUp(
         email: user.email,
         password: password,
-        emailRedirectTo: 'io.supabase.fixgoinnovations://login-callback',
+        emailRedirectTo: 'https://deep-links-gofix.netlify.app/confirm-email',
       );
 
       if (authResponse.user == null) {
@@ -31,7 +31,8 @@ class AuthService {
         };
       }
 
-      print('✅ PASO 2/5: Usuario creado en Auth (sin confirmar): ${authResponse.user!.id}');
+      print(
+          '✅ PASO 2/5: Usuario creado en Auth (sin confirmar): ${authResponse.user!.id}');
 
       // 2️⃣ SUBIR FOTO DE PERFIL (si existe)
       String? photoUrl;
@@ -74,14 +75,14 @@ class AuthService {
 
       return {
         'success': true,
-        'message': '✅ Registro exitoso. Revisa tu email para verificar tu cuenta.',
+        'message':
+            '✅ Registro exitoso. Revisa tu email para verificar tu cuenta.',
         'emailSent': true,
         'userId': authResponse.user!.id,
         'email': user.email,
         'userType': user.role.name,
         'userName': user.fullName,
       };
-      
     } on AuthException catch (e) {
       print('❌ Error de autenticación: ${e.message}');
       return {
@@ -103,14 +104,14 @@ class AuthService {
   Future<Map<String, dynamic>> resendConfirmationEmail(String email) async {
     try {
       print('📧 Reenviando email de confirmación a: $email');
-      
+
       // Usar el método de Supabase para reenviar OTP
       await _supabase.auth.signUp(
         email: email,
         password: 'temporary_pass_12345', // Temporal, solo para reenviar
-        emailRedirectTo: 'io.supabase.fixgoinnovations://login-callback',
+        emailRedirectTo: 'https://deep-links-gofix.netlify.app/confirm-email',
       );
-      
+
       print('✅ Email de confirmación reenviado');
       return {
         'success': true,
@@ -136,7 +137,7 @@ class AuthService {
     try {
       final session = _supabase.auth.currentSession;
       if (session == null) return false;
-      
+
       final isVerified = session.user.emailConfirmedAt != null;
       print('📧 Email verificado: $isVerified');
       return isVerified;
@@ -150,7 +151,7 @@ class AuthService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       print('🔐 PASO 1/4: Iniciando login para: $email');
-      
+
       // 1️⃣ AUTENTICAR CON SUPABASE
       final AuthResponse response = await _supabase.auth.signInWithPassword(
         email: email,
@@ -210,7 +211,6 @@ class AuthService {
         'user': user,
         'emailVerified': true,
       };
-      
     } on AuthException catch (e) {
       print('❌ Error de autenticación: ${e.message}');
       return {
@@ -281,7 +281,10 @@ class AuthService {
   // ==================== RESETEAR CONTRASEÑA ====================
   Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(email);
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'https://deep-links-gofix.netlify.app/reset-password',
+      );
       return {
         'success': true,
         'message': 'Revisa tu email para restablecer tu contraseña',
@@ -313,7 +316,7 @@ class AuthService {
       print('🔄 Actualizando perfil del usuario: $userId');
 
       String? photoUrl;
-      
+
       // Subir nueva foto si existe
       if (profileImageData != null) {
         try {
@@ -348,10 +351,7 @@ class AuthService {
       }
 
       // Actualizar en user_profiles
-      await _supabase
-          .from('user_profiles')
-          .update(updateData)
-          .eq('id', userId);
+      await _supabase.from('user_profiles').update(updateData).eq('id', userId);
 
       print('✅ Perfil actualizado exitosamente');
 
@@ -512,8 +512,7 @@ class AuthService {
       // Marcar usuario como eliminado en lugar de borrar
       await _supabase
           .from('user_profiles')
-          .update({'is_deleted': true})
-          .eq('id', userId);
+          .update({'is_deleted': true}).eq('id', userId);
 
       // Cerrar sesión
       await logout();
@@ -539,13 +538,13 @@ class AuthService {
   // ==================== MANEJAR ERRORES ====================
   String _handleAuthError(String error) {
     final errorLower = error.toLowerCase();
-    
-    if (errorLower.contains('already registered') || 
+
+    if (errorLower.contains('already registered') ||
         errorLower.contains('already been registered') ||
         errorLower.contains('user already registered')) {
       return 'Este email ya está registrado';
     }
-    if (errorLower.contains('invalid login credentials') || 
+    if (errorLower.contains('invalid login credentials') ||
         errorLower.contains('invalid credentials')) {
       return 'Email o contraseña incorrectos';
     }
@@ -558,7 +557,7 @@ class AuthService {
     if (errorLower.contains('email')) {
       return 'Email inválido';
     }
-    
+
     return error;
   }
 }

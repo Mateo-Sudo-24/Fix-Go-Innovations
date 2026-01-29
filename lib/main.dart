@@ -13,22 +13,22 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await initializeDateFormatting('es_ES', null); 
-  
+  await initializeDateFormatting('es_ES', null);
+
   try {
     // 1. Cargar variables de entorno
     await dotenv.load(fileName: '.env');
     print('✅ Variables de entorno cargadas');
-    
+
     // 2. Inicializar Supabase
     await SupabaseService().initialize();
     print('✅ Supabase conectado exitosamente');
-    
+
     runApp(const MyApp());
   } catch (e, stackTrace) {
     print('Error crítico en inicialización: $e');
     print('Stack trace: $stackTrace');
-    
+
     // Mostrar pantalla de error
     runApp(MaterialApp(
       home: Scaffold(
@@ -72,33 +72,34 @@ class MyApp extends StatelessWidget {
           path: '/',
           builder: (context, state) => const LoginScreen(),
         ),
-        
+
         // 🔐 Login Route
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
-        
+
         // ❓ Forgot Password Route
         GoRoute(
           path: '/forgot-password',
           builder: (context, state) => const ForgotPasswordScreen(),
         ),
-        
+
         // 🔗 DEEP LINK: Reset Password Route
-        // Handles: https://vercel-deeplink.vercel.app/reset-password?token=XXX&type=recovery
+        // Handles: https://deep-links-gofix.netlify.app/reset-password?token=XXX&type=recovery
         // Also handles: fixgo://reset-password?token=XXX
         GoRoute(
           path: '/reset-password',
           builder: (context, state) {
             // Extract token from query parameters
-            final token = state.uri.queryParameters['token'] ?? 
-                         state.uri.queryParameters['access_token'] ?? '';
+            final token = state.uri.queryParameters['token'] ??
+                state.uri.queryParameters['access_token'] ??
+                '';
             final type = state.uri.queryParameters['type'] ?? 'recovery';
-            
+
             debugPrint('🔗 Deep Link URI: ${state.uri}');
             debugPrint('🔐 Token: $token, Type: $type');
-            
+
             return ResetPasswordScreen(
               token: token,
               type: type,
@@ -106,21 +107,22 @@ class MyApp extends StatelessWidget {
             );
           },
         ),
-        
+
         // 🔗 DEEP LINK: Confirm Email Route
-        // Handles: https://vercel-deeplink.vercel.app/confirm-email?token=XXX&type=signup
+        // Handles: https://deep-links-gofix.netlify.app/confirm-email?token=XXX&type=signup
         // Also handles: fixgo://confirm-email?token=XXX
         GoRoute(
           path: '/confirm-email',
           builder: (context, state) {
             // Extract token from query parameters
-            final token = state.uri.queryParameters['token'] ?? 
-                         state.uri.queryParameters['access_token'] ?? '';
+            final token = state.uri.queryParameters['token'] ??
+                state.uri.queryParameters['access_token'] ??
+                '';
             final type = state.uri.queryParameters['type'] ?? 'signup';
-            
+
             debugPrint('🔗 Deep Link URI: ${state.uri}');
             debugPrint('📧 Token: $token, Type: $type');
-            
+
             return EmailVerificationScreen(
               token: token,
               type: type,
@@ -128,27 +130,27 @@ class MyApp extends StatelessWidget {
             );
           },
         ),
-        
+
         // 🔑 Change Password Route
         GoRoute(
           path: '/change-password',
           builder: (context, state) => const ChangePasswordScreen(),
         ),
-        
+
         // ❓ Help & Support Route
         GoRoute(
           path: '/help-support',
           builder: (context, state) => const HelpSupportScreen(),
         ),
       ],
-      
+
       // Handle deep links and redirects
       redirect: (context, state) {
         debugPrint('📍 GoRouter Redirect: ${state.uri}');
         return null;
       },
     );
-    
+
     return MaterialApp.router(
       title: 'Fix&Go Innovations',
       debugShowCheckedModeBanner: false,
