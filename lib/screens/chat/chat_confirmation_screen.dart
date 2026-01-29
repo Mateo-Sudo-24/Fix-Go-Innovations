@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
-import '../../models/accepted_work_model.dart';
 import '../../services/work_and_chat_service.dart';
 import '../../services/notification_system_service.dart';
 import '../client/chat_tab.dart';
